@@ -1,0 +1,40 @@
+x-minio-common: &minio-common
+  image: minio/minio:RELEASE.2021-01-05T05-22-38Z
+  command: server http://minio{1...2}/data{1...2}
+  expose:
+    - "9000"
+  environment:
+    MINIO_ACCESS_KEY: minio
+    MINIO_SECRET_KEY: minio123
+  healthcheck:
+    test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+    interval: 5s
+    timeout: 5s
+    retries: 5
+
+services:
+  minio1:
+    <<: *minio-common
+    hostname: minio1
+    volumes:
+      - ./s1d1:/data1
+      - ./s1d2:/data2
+
+  minio2:
+    <<: *minio-common
+    hostname: minio2
+    volumes:
+      - ./s2d1:/data1
+      - ./s2d2:/data2
+
+  nginx:
+    image: nginx:1.25.3-alpine
+    hostname: nginx
+    volumes:
+      - ./nginx-2021.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    depends_on:
+      - minio1
+      - minio2
